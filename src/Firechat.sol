@@ -5,7 +5,8 @@ contract Firechat {
     struct Chat {
         address user1;
         address user2;
-        Message[] messages;
+        Message[50] messages;
+        uint messageCount;
     }
 
     struct Message {
@@ -25,13 +26,14 @@ contract Firechat {
         if (_user2 == address(0)) revert InvalidAddress();
 
         bytes32 chatHash = keccak256(abi.encode(_user1, _user2));
-        Chat memory chat = Chat(_user1, _user2, new Message[](0));
         Chat memory existingChat = chats[chatHash];
 
-        if (chat.user1 == existingChat.user1 && chat.user2 == existingChat.user2) revert ChatAlreadyExists();
-        // Not checking chat.user1 == existingChat.user2 cuz then `chatHash` would be different;
+        if (existingChat.user1 != address(0)) revert ChatAlreadyExists();
+        // Not checking user1 != address(0) as we don't allow to create with address(0)
+        // If chat is created => both users are non-address(0)
 
-        chats[chatHash] = chat;
+        Message[50] calldata msgs;
+        chats[chatHash] = Chat(_user1, _user2, msgs, 0);
         return chatHash;
     }
 
@@ -43,8 +45,9 @@ contract Firechat {
         if (msg.sender != chat.user1 && msg.sender != chat.user2) revert Unauthorized();
 
         Message memory message = Message(msg.sender, _messageContent, block.timestamp);
+        chats[_chatHash].messages[chats[_chatHash].messageCount] = message;
+        chats[_chatHash].messageCount++;
 
-        chats[_chatHash].messages.push(message);
         return message;
     }
 }
