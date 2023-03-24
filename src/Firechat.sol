@@ -5,14 +5,9 @@ contract Firechat {
     struct Chat {
         address user1;
         address user2;
-        Message[50] messages;
-        uint messageCount;
-    }
-
-    struct Message {
-        address sender;
-        string content;
-        uint timestamp;
+        string[] messagesStrings;
+        address[] messageSender;
+        uint[] messageTimestamp;
     }
 
     mapping (bytes32 => Chat) public chats;
@@ -32,22 +27,27 @@ contract Firechat {
         // Not checking user1 != address(0) as we don't allow to create with address(0)
         // If chat is created => both users are non-address(0)
 
-        Message[50] calldata msgs;
-        chats[chatHash] = Chat(_user1, _user2, msgs, 0);
+        chats[chatHash] = Chat(
+            _user1,
+            _user2,
+            new string[](50),
+            new address[](50),
+            new uint[](50)
+        );
         return chatHash;
     }
 
     function sendMessage(
-        string calldata _messageContent,
+        string calldata _messageString,
         bytes32 _chatHash
-    ) public returns (Message memory) {
+    ) public returns (string memory messageString, address messageSender, uint messageTimestamp) {
         Chat memory chat = chats[_chatHash];
         if (msg.sender != chat.user1 && msg.sender != chat.user2) revert Unauthorized();
 
-        Message memory message = Message(msg.sender, _messageContent, block.timestamp);
-        chats[_chatHash].messages[chats[_chatHash].messageCount] = message;
-        chats[_chatHash].messageCount++;
+        chats[_chatHash].messagesStrings.push(_messageString);
+        chats[_chatHash].messageSender.push(msg.sender);
+        chats[_chatHash].messageTimestamp.push(block.timestamp);
 
-        return message;
+        return (_messageString, msg.sender, block.timestamp);
     }
 }
