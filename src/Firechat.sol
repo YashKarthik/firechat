@@ -5,6 +5,8 @@ contract Firechat {
     struct Chat {
         address user1;
         address user2;
+        // using there diff props to store msgs as structs can't be copied from memory to storage,
+        // but elementary types can be copied from mem to storage.
         string[] messagesStrings;
         address[] messageSender;
         uint[] messageTimestamp;
