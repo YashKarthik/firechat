@@ -1,53 +1,63 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 import "forge-std/Test.sol";
-import "forge-std/console.sol";
 import "../src/Firechat.sol";
 
 contract FirechatTest is Test {
     Firechat firechat;
-
-    address user1 = address(0x123);
-    address user2 = address(0x456);
+    address alice = address(0x33cc45d8B0336bFA830FB512b54b02a049277403);
+    address bob = address(0x599C5A4be2b87F0128b87Fea208DBE5AE41095e4);
 
     function setUp() public {
-     //   firechat = new Firechat();
+        firechat = new Firechat();
     }
 
-    function testNewChat() public {
-        firechat.newChat(user1, user2);
+    function test_NewChat() public {
+        vm.prank(alice);
+        bytes32 chatHash = firechat.newChat(alice, bob);
+        assertEq(chatHash, keccak256(abi.encode(alice, bob)));
 
-        console.log("hello");
-        //Firechat.Chat memory chat = firechat.chats(keccak256(abi.encode(user1, user2)));
+        (address user1, address user2) = firechat.chats(chatHash);
+        assertEq(alice, user1, "Alice and user1 address should match.");
+        assertEq(bob, user2, "Bob and user2 address should match.");
 
-        //assertEq(chat.user1, user1, "User1 address should match");
-        //assertEq(chat.user2, user2, "User2 address should match");
-        //assertEq(chat.messages.length, 0, "Messages array should be empty");
+        string[] memory messageStrings;
+        address[] memory messageSender;
+        uint[] memory messageTimestamp;
+
+        (messageStrings, messageSender, messageTimestamp) = firechat.getChatHistory(chatHash);
     }
 
-    //function testSendMessage() public {
-    //    firechat.newChat(user1, user2);
+    function test_NewChatAddressZero() public {
+        vm.expectRevert();
+        firechat.newChat(address(0), bob);
 
-    //    string memory messageContent = "Hello world!";
-    //    bytes32 chatHash = keccak256(abi.encode(user1, user2));
+        vm.expectRevert();
+        firechat.newChat(alice, address(0));
+    }
 
-    //    firechat.sendMessage(messageContent, chatHash);
+    function test_SendMessage() public {
+        bytes32 chatHash = firechat.newChat(alice, bob);
+        string memory messageContent = "Hello world!";
 
-    //    Firechat.Chat memory chat = firechat.chats(chatHash);
+        vm.prank(alice);
+        firechat.sendMessage(messageContent, chatHash);
 
-    //    assertEq(chat.messages.length, 1, "Messages array should have one element");
-    //    assertEq(chat.messages[0].sender, msg.sender, "Message sender should match the caller");
-    //    assertEq(chat.messages[0].content, messageContent, "Message content should match");
-    //}
+        (
+            string[] memory messageStrings,
+            address[] memory messageSender,
+        ) = firechat.getChatHistory(chatHash);
 
-    //function testSendMessageUnauthorized() public {
-    //    firechat.newChat(user1, user2);
+        assertEq(messageStrings.length, 1, "Messages array should have one element");
+        assertEq(messageSender[0], alice, "Message sender should match the caller");
+        assertEq(messageStrings[0], messageContent, "Message content should match");
+    }
 
-    //    string memory messageContent = "Hello world!";
-    //    bytes32 chatHash = keccak256(abi.encode(user1, user2));
+    function test_SendMessageUnauthorized() public {
+        bytes32 chatHash = firechat.newChat(alice, bob);
+        string memory messageContent = "Hello world!";
 
-    //    // Test sending a message from an unauthorized user
-    //    (bool success, ) = address(this).call(abi.encodeWithSignature("sendMessage(string,bytes32)", messageContent, chatHash));
-    //    assertFalse(success, "Sending a message from an unauthorized user should fail");
-    //}
+        vm.expectRevert();
+        firechat.sendMessage(messageContent, chatHash);
+    }
 }

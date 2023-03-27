@@ -5,8 +5,6 @@ contract Firechat {
     struct Chat {
         address user1;
         address user2;
-        // using there diff props to store msgs as structs can't be copied from memory to storage,
-        // but elementary types can be copied from mem to storage.
         string[] messagesStrings;
         address[] messageSender;
         uint[] messageTimestamp;
@@ -32,9 +30,9 @@ contract Firechat {
         chats[chatHash] = Chat(
             _user1,
             _user2,
-            new string[](50),
-            new address[](50),
-            new uint[](50)
+            new string[](0),
+            new address[](0),
+            new uint[](0)
         );
         return chatHash;
     }
@@ -51,5 +49,19 @@ contract Firechat {
         chats[_chatHash].messageTimestamp.push(block.timestamp);
 
         return (_messageString, msg.sender, block.timestamp);
+    }
+
+    function getChatHistory(bytes32 chatHash) external view returns (
+        string[] memory,
+        address[] memory,
+        uint[] memory
+    ) {
+        // EVM won't return the array properties in the Chat struct to an external contract.
+        Chat memory chat = chats[chatHash];
+        return (
+            chat.messagesStrings,
+            chat.messageSender,
+            chat.messageTimestamp
+        );
     }
 }
