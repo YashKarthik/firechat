@@ -19,13 +19,18 @@ contract Firechat {
     function newChat(address _user1, address _user2) public returns (bytes32) {
         if (_user1 == address(0)) revert InvalidAddress();
         if (_user2 == address(0)) revert InvalidAddress();
+        if (_user1 == _user2) revert InvalidAddress();
 
         bytes32 chatHash = keccak256(abi.encode(_user1, _user2));
         Chat memory existingChat = chats[chatHash];
-
         if (existingChat.user1 != address(0)) revert ChatAlreadyExists();
         // Not checking user1 != address(0) as we don't allow to create with address(0)
         // If chat is created => both users are non-address(0)
+
+        // only one Chat between two addresses, no matter who is user1/user2
+        bytes32 reverseChatHash = keccak256(abi.encode(_user2, _user1));
+        Chat memory reverseExistingChat = chats[reverseChatHash];
+        if (reverseExistingChat.user1 != address(0)) revert ChatAlreadyExists();
 
         chats[chatHash] = Chat(
             _user1,

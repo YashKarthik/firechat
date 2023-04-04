@@ -1,32 +1,42 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { ethers } from 'ethers';
+import { getAddress } from 'ethers/lib/utils.js';
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import { useState } from 'react';
-import { useAccount, useContractWrite, usePrepareContractWrite } from 'wagmi';
-import FirechatAbi from "../abis/Firechat.json";
+import {
+  useAccount,
+  useContractWrite,
+  usePrepareContractWrite,
+  useContractRead,
+} from 'wagmi';
+import FIRECHAT_ABI from "../abis/Firechat.json";
 
 const Home: NextPage = () => {
+  const FIRECHAT_ADDRESS =  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
   const { address, isDisconnected } = useAccount({
     onConnect() {
       resetChatParams();
     },
   });
-  const [receiver, setReceiver] = useState("");
+  const [receiver, setReceiver] = useState("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc");
+
+  function testT() {
+  }
 
   const {
     config: chatConfig,
     error: createChatConfigError
   } = usePrepareContractWrite({
-    address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-    abi: FirechatAbi,
+    address: FIRECHAT_ADDRESS,
+    abi: FIRECHAT_ABI,
     functionName: "newChat",
     args: [
       address,
       receiver
     ],
   });
-  console.log(createChatConfigError);
 
   const {
     write: createNewChat,
@@ -76,6 +86,7 @@ const Home: NextPage = () => {
               e.preventDefault();
               if (!createNewChat) {
                 console.log("disabled");
+                console.log(createChatError);
                 return;
               }
               console.log("Config:\n", chatConfig);
@@ -88,7 +99,19 @@ const Home: NextPage = () => {
               <input
                 type="text"
                 name="receiver"
-                onChange={r => setReceiver(r.target.value)} 
+                onChange={r => {
+                  setReceiver(r.target.value);
+                  console.log(
+                    ethers.utils.keccak256(
+                      ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ receiver, address ])
+                    )
+                  );
+                  console.log(
+                    ethers.utils.keccak256(
+                      ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ address, receiver ])
+                    )
+                  );
+                }} 
                 className="
                   p-1
                   bg-black
@@ -103,7 +126,7 @@ const Home: NextPage = () => {
                   bg-black
                   text-gray-400 hover:text-green-500
                   border-2 border-gray-500 hover:border-green-500 
-                  disabled:bg-gray-300 disabled:text-black
+                  disabled:bg-gray-300 disabled:text-gray-500 disabled:hover:border-red-500
                   rounded-sm hover:rounded-lg
                   ease-in-out duration-300
               ">
