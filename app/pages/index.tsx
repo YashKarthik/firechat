@@ -1,24 +1,38 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import type { NextPage } from 'next';
 import Head from 'next/head';
+import { useState } from 'react';
 import { useAccount, useContractWrite, usePrepareContractWrite } from 'wagmi';
 import FirechatAbi from "../abis/Firechat.json";
 
 const Home: NextPage = () => {
 
-  const { isDisconnected } = useAccount();
+  const { address, isDisconnected } = useAccount({
+    onConnect() {
+      resetChatParams();
+    },
+  });
+  const [receiver, setReceiver] = useState("");
 
-  const { config, error } = usePrepareContractWrite({
+  const {
+    config: chatConfig,
+    error: createChatConfigError
+  } = usePrepareContractWrite({
     address: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
     abi: FirechatAbi,
     functionName: "newChat",
     args: [
-      "0x976EA74026E726554dB657fA54763abd0C3a0aa9",
-      "0x14dC79964da2C08b23698B3D3cc7Ca32193d9955"
+      address,
+      receiver
     ],
-  });      
+  });
+  console.log(createChatConfigError);
 
-  const { write } = useContractWrite(config);
+  const {
+    write: createNewChat,
+    reset: resetChatParams,
+    error: createChatError
+  } = useContractWrite(chatConfig);
 
   return (
     <div>
@@ -34,6 +48,7 @@ const Home: NextPage = () => {
       <div className="
         flex flex-col
         min-h-screen
+        bg-neutral-950 text-white
       ">
         <div className="
           flex flex-col
@@ -48,15 +63,55 @@ const Home: NextPage = () => {
             Welcome to Firechat
           </h1>
 
-          <p className=" ">
+          <p className="mb-7">
             Burn <code>ether Ξ </code>
             by chatting on-chain🔥
           </p>
 
+          <div>
+            <p>
+              Whom do you wanna chat with?
+            </p>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              if (!createNewChat) {
+                console.log("disabled");
+                return;
+              }
+              console.log("Config:\n", chatConfig);
+              createNewChat?.();
+              }}
+              className="
+                flex flex-col md:flex-row gap-2
+                items-center
+            ">
+              <input
+                type="text"
+                name="receiver"
+                onChange={r => setReceiver(r.target.value)} 
+                className="
+                  p-1
+                  bg-black
+                  border-2 border-gray-500
+                  rounded-sm
+                  min-w-[42ch]
+              "/>
 
-          { isDisconnected ? "first connect wallet" : (
-            <button className='bg-blue-500' disabled={!write} onClick={() => write?.()}>New Chat</button>
-          )}
+              <button disabled={!createNewChat}
+                className="
+                  p-1 max-w-xs
+                  bg-black
+                  text-gray-400 hover:text-green-500
+                  border-2 border-gray-500 hover:border-green-500 
+                  disabled:bg-gray-300 disabled:text-black
+                  rounded-sm hover:rounded-lg
+                  ease-in-out duration-300
+              ">
+                New Chat
+              </button>
+            </form>
+
+          </div>
 
         </div>
 
