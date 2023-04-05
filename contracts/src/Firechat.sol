@@ -16,6 +16,8 @@ contract Firechat {
     error InvalidAddress();
     error ChatAlreadyExists();
 
+    event NewChat(address _user1, address _user2);
+
     function newChat(address _user1, address _user2) public returns (bytes32) {
         if (_user1 == address(0)) revert InvalidAddress();
         if (_user2 == address(0)) revert InvalidAddress();
@@ -39,6 +41,8 @@ contract Firechat {
             new address[](0),
             new uint[](0)
         );
+
+        emit NewChat(_user1, _user2);
         return chatHash;
     }
 

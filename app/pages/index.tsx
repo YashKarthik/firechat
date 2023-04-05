@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { getAddress } from 'ethers/lib/utils.js';
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   useAccount,
   useContractWrite,
@@ -20,10 +20,21 @@ const Home: NextPage = () => {
       resetChatParams();
     },
   });
-  const [receiver, setReceiver] = useState("0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc");
+  const receiverRef = useRef(ethers.constants.AddressZero);
 
-  function testT() {
-  }
+  const { data: chatData, refetch: refetchChatData } = useContractRead({
+    address: FIRECHAT_ADDRESS,
+    abi: FIRECHAT_ABI,
+    functionName: "chats",
+    args: [ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ receiverRef.current, address || ethers.constants.AddressZero])) ],
+  });
+
+  const { data: chatData2, refetch: refetchChatData2 } = useContractRead({
+    address: FIRECHAT_ADDRESS,
+    abi: FIRECHAT_ABI,
+    functionName: "chats",
+    args: [ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ address || ethers.constants.AddressZero, receiverRef.current,  ])) ],
+  });
 
   const {
     config: chatConfig,
@@ -34,7 +45,7 @@ const Home: NextPage = () => {
     functionName: "newChat",
     args: [
       address,
-      receiver
+      receiverRef.current
     ],
   });
 
@@ -43,6 +54,26 @@ const Home: NextPage = () => {
     reset: resetChatParams,
     error: createChatError
   } = useContractWrite(chatConfig);
+
+  async function checkChatExists(user1: string, user2: string) {
+    console.log("state, ref:", address, receiverRef.current);
+
+    console.log("hashes:");
+    console.log(ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ user1, user2 ])));
+    console.log(ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ user2, user1 ])));
+
+    await refetchChatData();
+    await refetchChatData2();
+
+    console.log(chatData);
+    console.log(chatData2);
+
+    await refetchChatData();
+    await refetchChatData2();
+
+    console.log(chatData);
+    console.log(chatData2);
+  }
 
   return (
     <div>
@@ -100,17 +131,8 @@ const Home: NextPage = () => {
                 type="text"
                 name="receiver"
                 onChange={r => {
-                  setReceiver(r.target.value);
-                  console.log(
-                    ethers.utils.keccak256(
-                      ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ receiver, address ])
-                    )
-                  );
-                  console.log(
-                    ethers.utils.keccak256(
-                      ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ address, receiver ])
-                    )
-                  );
+                  receiverRef.current = r.target.value;
+                  checkChatExists(address || ethers.constants.AddressZero, r.target.value);
                 }} 
                 className="
                   p-1
@@ -132,6 +154,7 @@ const Home: NextPage = () => {
               ">
                 New Chat
               </button>
+
             </form>
 
           </div>
