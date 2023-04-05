@@ -1,15 +1,20 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { ethers } from 'ethers';
-import { getAddress } from 'ethers/lib/utils.js';
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+
 import {
   useAccount,
   useContractWrite,
   usePrepareContractWrite,
   useContractRead,
 } from 'wagmi';
+import { ethers } from 'ethers';
+
+import * as dotenv from "dotenv";
+dotenv.config();
+
+import { getChat, createNewChat as testCreateNewChat } from '../utils/contract-functions';
 import FIRECHAT_ABI from "../abis/Firechat.json";
 
 const Home: NextPage = () => {
@@ -21,20 +26,6 @@ const Home: NextPage = () => {
     },
   });
   const receiverRef = useRef(ethers.constants.AddressZero);
-
-  const { data: chatData, refetch: refetchChatData } = useContractRead({
-    address: FIRECHAT_ADDRESS,
-    abi: FIRECHAT_ABI,
-    functionName: "chats",
-    args: [ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ receiverRef.current, address || ethers.constants.AddressZero])) ],
-  });
-
-  const { data: chatData2, refetch: refetchChatData2 } = useContractRead({
-    address: FIRECHAT_ADDRESS,
-    abi: FIRECHAT_ABI,
-    functionName: "chats",
-    args: [ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ address || ethers.constants.AddressZero, receiverRef.current,  ])) ],
-  });
 
   const {
     config: chatConfig,
@@ -54,26 +45,6 @@ const Home: NextPage = () => {
     reset: resetChatParams,
     error: createChatError
   } = useContractWrite(chatConfig);
-
-  async function checkChatExists(user1: string, user2: string) {
-    console.log("state, ref:", address, receiverRef.current);
-
-    console.log("hashes:");
-    console.log(ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ user1, user2 ])));
-    console.log(ethers.utils.keccak256( ethers.utils.defaultAbiCoder.encode([ "address", "address" ], [ user2, user1 ])));
-
-    await refetchChatData();
-    await refetchChatData2();
-
-    console.log(chatData);
-    console.log(chatData2);
-
-    await refetchChatData();
-    await refetchChatData2();
-
-    console.log(chatData);
-    console.log(chatData2);
-  }
 
   return (
     <div>
@@ -113,8 +84,16 @@ const Home: NextPage = () => {
             <p>
               Whom do you wanna chat with?
             </p>
-            <form onSubmit={(e) => {
+            <form onSubmit={async e => {
               e.preventDefault();
+              console.log("starting");
+              const t = await testCreateNewChat(
+                address || ethers.constants.AddressZero,
+                receiverRef.current
+              );
+              console.log(t);
+              return;
+
               if (!createNewChat) {
                 console.log("disabled");
                 console.log(createChatError);
@@ -130,9 +109,8 @@ const Home: NextPage = () => {
               <input
                 type="text"
                 name="receiver"
-                onChange={r => {
+                onChange={async r => {
                   receiverRef.current = r.target.value;
-                  checkChatExists(address || ethers.constants.AddressZero, r.target.value);
                 }} 
                 className="
                   p-1
@@ -142,7 +120,7 @@ const Home: NextPage = () => {
                   min-w-[42ch]
               "/>
 
-              <button disabled={!createNewChat}
+              <button
                 className="
                   p-1 max-w-xs
                   bg-black
