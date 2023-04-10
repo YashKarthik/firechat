@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 import {
@@ -14,13 +14,16 @@ import { ethers } from 'ethers';
 import { getChat } from '../utils/contract-functions';
 import { useDebounce } from '../utils/useDebounce';
 import FIRECHAT_ABI from "../abis/Firechat.json";
+import { useRouter } from 'next/router';
 
 const Home: NextPage = () => {
 
   const FIRECHAT_ADDRESS =  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
   const [msgReceiverAddr, setMsgReceiverAddr] = useState(ethers.constants.AddressZero);
-  const [chatHash, setChatHash] = useState<string>();
   const debouncedMsgReceiverAddr = useDebounce(msgReceiverAddr, 500); // 1/2 sec
+  const router = useRouter();
+
   const { address } = useAccount({
     onConnect() {
       resetChatParams();
@@ -30,7 +33,6 @@ const Home: NextPage = () => {
   const {
     config: chatConfig,
     isError: isPrepareChatConfigError,
-    error: prepareChatConfigError
   } = usePrepareContractWrite({
     address: FIRECHAT_ADDRESS,
     abi: FIRECHAT_ABI,
@@ -94,7 +96,7 @@ const Home: NextPage = () => {
               e.preventDefault();
               if (!address) return;
 
-              if ((!createNewChat) || (!isPrepareChatConfigError)) {
+              if (isPrepareChatConfigError || (!createNewChat) ) {
                 const room = await getChat(address, debouncedMsgReceiverAddr, FIRECHAT_ADDRESS);
                 if (!room) {
                   console.log("----------------- ERROR -----------------"); // if room doesn't exist, but we still get some error, there's some error
@@ -102,8 +104,8 @@ const Home: NextPage = () => {
                   return;
                 }
 
-                setChatHash(room.chatHash);
-                return room;
+                router.push(`/chat/${room.chatHash}`);
+                return;
               }
 
               console.log("starting");
