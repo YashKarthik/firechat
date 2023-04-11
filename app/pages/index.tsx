@@ -128,7 +128,7 @@ const Home: NextPage = () => {
                   min-w-[42ch]
               "/>
 
-              <button title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
+              <button disabled={!createNewChat} title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
                 p-1 max-w-xs
                 bg-black
                 hover:text-green-500 disabled:hover:text-red-500

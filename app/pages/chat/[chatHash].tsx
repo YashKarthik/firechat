@@ -1,9 +1,9 @@
 import { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getChatHistory, Message } from "../../utils/contract-functions";
 import FIRECHAT_ABI from "@/abis/Firechat.json";
-import { useAccount, useContractRead } from "wagmi";
+import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite } from "wagmi";
 import { ethers } from "ethers";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
@@ -14,8 +14,51 @@ const Chat: NextPage = () => {
   const { chatHash } = router.query;
   const [disableInput, setDisableInput] = useState(false);
   const [chatHistory, setChatHistory] = useState<Message[]>();
+  const [msgText, setMsgText] = useState("default text");
 
   const { address } = useAccount();
+
+  const {
+    data: chatRoom,
+    isError: chatRoomFetchError
+  } = useContractRead({
+    address: FIRECHAT_CONTRACT_ADDRESS,
+    abi: FIRECHAT_ABI,
+    functionName: "chats",
+    args: [ chatHash ],
+    onSuccess(data: string[]) {
+      if (data[0] == ethers.constants.AddressZero) {
+        router.push("/");
+        return;
+      }
+      console.log("Users:\n", data);
+      if (address != data[0] && address != data[1]) {
+        router.push("/");
+        return;
+      }
+    },
+    onError() { console.count("err")}
+  });
+
+  const {
+    config: messageConfig,
+    error: prepareMsgConfigError,
+    data
+  } = usePrepareContractWrite({
+    address: FIRECHAT_CONTRACT_ADDRESS,
+    abi: FIRECHAT_ABI,
+    functionName: "sendMessage",
+    args: [ msgText, router.isReady ? chatHash as string : "" ],
+    onError(err) {
+      console.error(err);
+    },
+  });
+
+  const {
+    write: sendMessage,
+    error: sendMessageError,
+    reset: resetMsgParams,
+  } = useContractWrite(messageConfig);
 
   useEffect(() => {
     if (!router.isReady) {
@@ -39,32 +82,13 @@ const Chat: NextPage = () => {
       setChatHistory(msgs);
     }
 
+    getChats(chatHash);
+    resetMsgParams();
     setDisableInput(false);
 
   }, [router.isReady])
 
 
-  const {
-    data: chatRoom,
-    isError: chatRoomFetchError
-  } = useContractRead({
-    address: FIRECHAT_CONTRACT_ADDRESS,
-    abi: FIRECHAT_ABI,
-    functionName: "chats",
-    args: [ chatHash ],
-    onSuccess(data: string[]) {
-      if (data[0] == ethers.constants.AddressZero) {
-        router.push("/");
-        return;
-      }
-      console.log("Users:\n", data);
-      if (address != data[0] && address != data[1]) {
-        router.push("/");
-        return;
-      }
-    },
-    onError() { console.count("err")}
-  });
 
   return (
     <div className="
@@ -95,7 +119,7 @@ const Chat: NextPage = () => {
       <div className="
         w-8/12 pl-24 my-7
       ">
-        <p className="mb-2 ml-1">Chatting with: {chatRoom ? (chatRoom[0] == address ? chatRoom[0] : chatRoom[1]): chatRoom}</p>
+        <p className="mb-2 ml-1">Chatting with: {chatRoom ? (chatRoom[0] != address ? chatRoom[0] : chatRoom[1]): chatRoom}</p>
 
         <div className="
           rounded-md border border-gray-700
@@ -104,11 +128,31 @@ const Chat: NextPage = () => {
 
           <div className="
             flex flex-col
+            gap-7
             p-3
+            overflow-y-scroll
+            max-h-[500px]
           ">
-            <p> msgs </p>
-            <p> msgs </p>
-            <p> msgs </p>
+            {chatHistory?.map(chat => (
+               <div key={chat.messageTimestamp} className={`
+                 flex flex-col
+                 ${chat.messageSender == address ? "self-end" : "self-start"}
+                 ${chat.messageSender == address ? "items-end" : "items-start"}
+               `}>
+                 <p className={`
+                  px-2 py-1
+                  border-2 rounded-lg
+                  ease-in-out duration-300
+
+                  ${chat.messageSender == address ? "border-green-500 hover:bg-green-500/25" : "border-gray-700 hover:bg-gray-700/25"}
+                  ${chat.messageSender == address ? "items-end" : "items-start"}
+
+                 `}>{ chat.messageString }</p>
+                 <p className=" text-sm text-2 text-gray-400 hover:cursor-pointer " onClick={e => navigator.clipboard.writeText(chat.messageSender)}>
+                  { chat.messageSender.slice(0, 4) + "..." + chat.messageSender.slice(chat.messageSender.length - 2,) }
+                 </p>
+               </div>
+            ))}
           </div>
 
           <form className="
@@ -119,11 +163,15 @@ const Chat: NextPage = () => {
             onSubmit={e => {
               e.preventDefault();
               setDisableInput(true);
-              const message = e.currentTarget.elements.namedItem("message") as HTMLInputElement;
-              console.log(message.value);
+
+              if (prepareMsgConfigError || !sendMessage) {
+                console.log("error while prep", prepareMsgConfigError);
+                return;
+              }
+              sendMessage();
             }}
           >
-            <textarea name="message" disabled={disableInput} className="
+            <textarea name="message" onChange={e => setMsgText(e.target.value)} disabled={disableInput} className="
               col-span-4
               flex h-14 w-full py-2 px-3 
               rounded-md border-2 border-gray-700
