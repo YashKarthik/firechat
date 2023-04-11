@@ -1,6 +1,6 @@
 import '../styles/globals.css';
 import '@rainbow-me/rainbowkit/styles.css';
-import { getDefaultWallets, RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { darkTheme, getDefaultWallets, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import type { AppProps } from 'next/app';
 import { configureChains, createClient, WagmiConfig } from 'wagmi';
 import { arbitrum, goerli, mainnet, optimism, polygon } from 'wagmi/chains';
@@ -50,8 +50,25 @@ const wagmiClient = createClient({
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <WagmiConfig client={wagmiClient}>
-      <RainbowKitProvider chains={chains} coolMode={true}>
+      <RainbowKitProvider chains={chains} coolMode={true} theme={darkTheme({
+        accentColor: "#22c55e",
+        accentColorForeground: "white",
+        overlayBlur: "small",
+        borderRadius: "medium"
+      })}>
         <Component {...pageProps} />
+
+        <footer className="bg-neutral-950 text-green-500 mx-auto flex flex-row gap-3 text-sm font-mono">
+          <a href="https://github.com/yashkarthik/firechat" rel="noopener noreferrer" target="_blank">
+            Github
+          </a>
+
+          <a href="https://yashkarthik.xyz" rel="noopener noreferrer" target="_blank">
+            Blog
+          </a>
+
+          <p>yashkarthik.eth</p>
+        </footer>
       </RainbowKitProvider>
     </WagmiConfig>
   );

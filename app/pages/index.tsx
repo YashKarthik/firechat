@@ -20,6 +20,7 @@ const Home: NextPage = () => {
 
   const FIRECHAT_ADDRESS =  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
+  const [isRealError, setIsRealError] = useState(false);
   const [msgReceiverAddr, setMsgReceiverAddr] = useState(ethers.constants.AddressZero);
   const debouncedMsgReceiverAddr = useDebounce(msgReceiverAddr, 500); // 1/2 sec
   const router = useRouter();
@@ -29,6 +30,22 @@ const Home: NextPage = () => {
       resetChatParams();
     },
   });
+
+  async function checkIfRealError() {
+    if (!isPrepareChatConfigError) {
+      setIsRealError(false);
+      return;
+    }
+
+    const room = await getChat(address as `0x${string}`, msgReceiverAddr, FIRECHAT_ADDRESS);
+    if (!room) {
+      console.log("----------------- ERROR -----------------"); // if room doesn't exist, but we still get some error, there's some error
+      console.log(isPrepareChatConfigError);
+      setIsRealError(true);
+      return;
+    }
+    setIsRealError(false);
+  }
 
   const {
     config: chatConfig,
@@ -119,7 +136,10 @@ const Home: NextPage = () => {
               <input
                 type="text"
                 name="receiver"
-                onChange={r => setMsgReceiverAddr(r.target.value)} 
+                onChange={r => {
+                  setMsgReceiverAddr(r.target.value);
+                  checkIfRealError();
+                }} 
                 className="
                   p-1
                   bg-black
@@ -128,7 +148,7 @@ const Home: NextPage = () => {
                   min-w-[42ch]
               "/>
 
-              <button disabled={!createNewChat} title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
+              <button disabled={isRealError} title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
                 p-1 max-w-xs
                 bg-black
                 hover:text-green-500 disabled:hover:text-red-500
@@ -136,7 +156,11 @@ const Home: NextPage = () => {
                 rounded-sm hover:rounded-lg hover:disabled:rounded-none
                 ease-in-out duration-300
               `}>
-                <p className={isNewChatPreparing ? "hidden" : (isNewChatLoading ? "hidden" : "block")}> New Chat </p>
+                <p className={isNewChatPreparing ? "hidden" : (isNewChatLoading ? "hidden" : "block")}> 
+                  { isRealError && isPrepareChatConfigError && "Invalid address" }
+                  { isPrepareChatConfigError && !isRealError && msgReceiverAddr != ethers.constants.AddressZero && "Enter existing chat" }
+                  { !(isRealError && isPrepareChatConfigError) && "New chat" }
+                </p>
 
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`
                   w-6 h-6
@@ -161,14 +185,6 @@ const Home: NextPage = () => {
           </div>
 
         </div>
-
-        {/*
-        <footer className="self-center">
-          <a href="https://rainbow.me" rel="noopener noreferrer" target="_blank">
-            Made with ❤️ by your frens at 🌈
-          </a>
-        </footer>
-        */}
       </div>
 
     </div>

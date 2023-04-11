@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { getChatHistory, Message } from "../../utils/contract-functions";
 import FIRECHAT_ABI from "@/abis/Firechat.json";
-import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite } from "wagmi";
+import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
 import { ethers } from "ethers";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 
@@ -16,7 +16,17 @@ const Chat: NextPage = () => {
   const [chatHistory, setChatHistory] = useState<Message[]>();
   const [msgText, setMsgText] = useState("default text");
 
-  const { address } = useAccount();
+  const { address } = useAccount({
+    onConnect() {
+      updateChatUI(chatHash as string);
+    },
+  });
+
+  async function updateChatUI(chatHash: string) {
+    const msgs = await getChatHistory(chatHash, FIRECHAT_CONTRACT_ADDRESS);
+    setChatHistory(msgs);
+  }
+
 
   const {
     data: chatRoom,
@@ -43,7 +53,6 @@ const Chat: NextPage = () => {
   const {
     config: messageConfig,
     error: prepareMsgConfigError,
-    data
   } = usePrepareContractWrite({
     address: FIRECHAT_CONTRACT_ADDRESS,
     abi: FIRECHAT_ABI,
@@ -58,7 +67,16 @@ const Chat: NextPage = () => {
     write: sendMessage,
     error: sendMessageError,
     reset: resetMsgParams,
+    data: messageSendData,
   } = useContractWrite(messageConfig);
+
+  const { isLoading: isMessageSendLoading } = useWaitForTransaction({
+    hash: messageSendData?.hash,
+    onSuccess(data) {
+      updateChatUI(chatHash as string);
+      setDisableInput(false);
+    },
+  })
 
   useEffect(() => {
     if (!router.isReady) {
@@ -77,12 +95,7 @@ const Chat: NextPage = () => {
       return
     };
 
-    async function getChats(chatHash: string) {
-      const msgs = await getChatHistory(chatHash, FIRECHAT_CONTRACT_ADDRESS);
-      setChatHistory(msgs);
-    }
-
-    getChats(chatHash);
+    updateChatUI(chatHash);
     resetMsgParams();
     setDisableInput(false);
 
@@ -114,12 +127,26 @@ const Chat: NextPage = () => {
       Firechat
     </h1>
 
+    {!address && (
+      <p>Connect wallet to start chatting.</p>
+    )}
+
+
     {!chatRoomFetchError &&
 
       <div className="
         w-8/12 pl-24 my-7
       ">
-        <p className="mb-2 ml-1">Chatting with: {chatRoom ? (chatRoom[0] != address ? chatRoom[0] : chatRoom[1]): chatRoom}</p>
+        <div className="flex flex-row gap-1">
+          <p className="mb-2 ml-1">Chatting with: {chatRoom ? (chatRoom[0] != address ? chatRoom[0] : chatRoom[1]): chatRoom}</p>
+          <a href="/" className="
+            text-gray-500
+          ">
+            <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+            </svg>
+          </a>
+        </div>
 
         <div className="
           rounded-md border border-gray-700
@@ -148,7 +175,7 @@ const Chat: NextPage = () => {
                   ${chat.messageSender == address ? "items-end" : "items-start"}
 
                  `}>{ chat.messageString }</p>
-                 <p className=" text-sm text-2 text-gray-400 hover:cursor-pointer " onClick={e => navigator.clipboard.writeText(chat.messageSender)}>
+                 <p className=" text-sm text-2 text-gray-400 hover:cursor-pointer " onClick={() => navigator.clipboard.writeText(chat.messageSender)}>
                   { chat.messageSender.slice(0, 4) + "..." + chat.messageSender.slice(chat.messageSender.length - 2,) }
                  </p>
                </div>
@@ -184,14 +211,24 @@ const Chat: NextPage = () => {
 
             <button type="submit" disabled={disableInput} className="
               px-4 w-16
-              hover:text-green-500 disabled:hover:text-red-500
-              border-2 border-gray-700 hover:border-green-500 hover:disabled:border-red-500 
+              hover:text-green-500 disabled:hover:text-gray-700
+              border-2 border-gray-700 hover:border-green-500 hover:disabled:border-gray-700 
               rounded-sm hover:rounded-lg hover:disabled:rounded-none
               ease-in-out duration-300
             ">
-              <svg className="w-6 h-6 " xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+              <svg className={`w-6 h-6 {isMessageSendLoading ? "hidden" : "block"} `} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
               </svg>
+
+
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`
+                w-6 h-6
+                animate-spin
+                ${isMessageSendLoading ? "block" : "hidden"}
+              `}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+              </svg>
+
             </button>
           </form>
         </div>
