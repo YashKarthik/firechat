@@ -1,6 +1,6 @@
 import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 import {
@@ -12,7 +12,6 @@ import {
 import { ethers } from 'ethers';
 
 import { getChat } from '../utils/contract-functions';
-import { useDebounce } from '../utils/useDebounce';
 import FIRECHAT_ABI from "../abis/Firechat.json";
 import { useRouter } from 'next/router';
 
@@ -20,9 +19,8 @@ const Home: NextPage = () => {
 
   const FIRECHAT_ADDRESS =  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
-  const [isRealError, setIsRealError] = useState(false);
-  const [msgReceiverAddr, setMsgReceiverAddr] = useState(ethers.constants.AddressZero);
-  const debouncedMsgReceiverAddr = useDebounce(msgReceiverAddr, 500); // 1/2 sec
+  const [inputStatus, setInputStatus] = useState<"room exists" | "invalid address" | "zero address" | "valid">("zero address");
+  const msgReceiverAddrRef = useRef(ethers.constants.AddressZero);
   const router = useRouter();
 
   const { address } = useAccount({
@@ -32,19 +30,36 @@ const Home: NextPage = () => {
   });
 
   async function checkIfRealError() {
+    if (!address) return;
     if (!isPrepareChatConfigError) {
-      setIsRealError(false);
+      setInputStatus("valid");
       return;
     }
 
-    const room = await getChat(address as `0x${string}`, msgReceiverAddr, FIRECHAT_ADDRESS);
-    if (!room) {
-      console.log("----------------- ERROR -----------------"); // if room doesn't exist, but we still get some error, there's some error
-      console.log(isPrepareChatConfigError);
-      setIsRealError(true);
+    try {
+      const room = await getChat(address, msgReceiverAddrRef.current, FIRECHAT_ADDRESS);
+      if (room) {
+        setInputStatus("room exists");
+        return room.chatHash;
+      }
+      console.log("invalid address"); // if room doesn't exist, but we still get some error, there's some error
+      setInputStatus("invalid address");
       return;
+
+    } catch (e) {
+      if (e instanceof Error) {
+        // getChat will throw if the input is not an address
+        if (e.message.slice(0, 15) == `invalid address`) {
+          setInputStatus("invalid address");
+          console.log("invalid address");
+          return;
+        }
+
+      }
+      console.log(e);
     }
-    setIsRealError(false);
+
+    setInputStatus("valid");
   }
 
   const {
@@ -56,7 +71,7 @@ const Home: NextPage = () => {
     functionName: "newChat",
     args: [
       address,
-      debouncedMsgReceiverAddr
+      msgReceiverAddrRef.current
     ]
   });
 
@@ -82,11 +97,7 @@ const Home: NextPage = () => {
         <link href="/favicon.ico" rel="icon" />
       </Head>
 
-      <div className="
-        flex flex-col
-        min-h-screen
-        bg-neutral-950 text-white
-      ">
+      <div className=" flex flex-col ">
         <div className="
           flex flex-col
           items-center
@@ -112,16 +123,10 @@ const Home: NextPage = () => {
             <form onSubmit={async e => {
               e.preventDefault();
               if (!address) return;
-
-              if (isPrepareChatConfigError || (!createNewChat) ) {
-                const room = await getChat(address, debouncedMsgReceiverAddr, FIRECHAT_ADDRESS);
-                if (!room) {
-                  console.log("----------------- ERROR -----------------"); // if room doesn't exist, but we still get some error, there's some error
-                  console.log(isPrepareChatConfigError);
-                  return;
-                }
-
-                router.push(`/chat/${room.chatHash}`);
+              const chatHash = await checkIfRealError();
+              console.log(inputStatus);
+              if (chatHash) {
+                router.push(`/chat/${chatHash}`);
                 return;
               }
 
@@ -137,7 +142,7 @@ const Home: NextPage = () => {
                 type="text"
                 name="receiver"
                 onChange={r => {
-                  setMsgReceiverAddr(r.target.value);
+                  msgReceiverAddrRef.current = r.target.value;
                   checkIfRealError();
                 }} 
                 className="
@@ -148,7 +153,7 @@ const Home: NextPage = () => {
                   min-w-[42ch]
               "/>
 
-              <button disabled={isRealError} title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
+              <button disabled={inputStatus == "invalid address" || inputStatus == "zero address"} title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
                 p-1 max-w-xs
                 bg-black
                 hover:text-green-500 disabled:hover:text-red-500
@@ -157,9 +162,9 @@ const Home: NextPage = () => {
                 ease-in-out duration-300
               `}>
                 <p className={isNewChatPreparing ? "hidden" : (isNewChatLoading ? "hidden" : "block")}> 
-                  { isRealError && isPrepareChatConfigError && "Invalid address" }
-                  { isPrepareChatConfigError && !isRealError && msgReceiverAddr != ethers.constants.AddressZero && "Enter existing chat" }
-                  { !(isRealError && isPrepareChatConfigError) && "New chat" }
+                  { inputStatus == "invalid address" && "Invalid address" }
+                  { inputStatus == "room exists" && "Enter chat" }
+                  { (inputStatus == "valid" || inputStatus == "zero address") && "New chat" }
                 </p>
 
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={`

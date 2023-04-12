@@ -56,19 +56,23 @@ function MyApp({ Component, pageProps }: AppProps) {
         overlayBlur: "small",
         borderRadius: "medium"
       })}>
-        <Component {...pageProps} />
+        <div className='min-h-screen bg-neutral-950 text-white'>
+          <Component {...pageProps} />
 
-        <footer className="bg-neutral-950 text-green-500 mx-auto flex flex-row gap-3 text-sm font-mono">
-          <a href="https://github.com/yashkarthik/firechat" rel="noopener noreferrer" target="_blank">
-            Github
-          </a>
+          <footer className="absolute bottom-0 px-2 bg-neutral-950 text-green-500 flex flex-row gap-3 text-sm font-mono">
+            <a href="https://github.com/yashkarthik/firechat" rel="noopener noreferrer" target="_blank">
+              Github
+            </a>
 
-          <a href="https://yashkarthik.xyz" rel="noopener noreferrer" target="_blank">
-            Blog
-          </a>
+            <a href="https://yashkarthik.xyz" rel="noopener noreferrer" target="_blank">
+              Blog
+            </a>
 
-          <p>yashkarthik.eth</p>
-        </footer>
+            <button type="button" onClick={() => navigator.clipboard.writeText("yashkarthik.eth")}>
+              yashkarthik.eth
+            </button>
+          </footer>
+        </div>
       </RainbowKitProvider>
     </WagmiConfig>
   );
