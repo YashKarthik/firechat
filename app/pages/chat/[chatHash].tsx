@@ -6,6 +6,7 @@ import FIRECHAT_ABI from "@/abis/Firechat.json";
 import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
 import { ethers } from "ethers";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Link from "next/link";
 
 const Chat: NextPage = () => {
 
@@ -99,7 +100,7 @@ const Chat: NextPage = () => {
     resetMsgParams();
     setDisableInput(false);
 
-  }, [router.isReady])
+  }, [router.isReady, chatHash, router, resetMsgParams])
 
 
 
@@ -135,13 +136,13 @@ const Chat: NextPage = () => {
       ">
         <div className="flex flex-row gap-1">
           <p className="mb-2 ml-1">Chatting with: {chatRoom ? (chatRoom[0] != address ? chatRoom[0] : chatRoom[1]): chatRoom}</p>
-          <a href="/" className="
+          <Link href="/" className="
             text-gray-500
           ">
             <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
             </svg>
-          </a>
+          </Link>
         </div>
 
         <div className="
