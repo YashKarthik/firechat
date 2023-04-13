@@ -5,6 +5,7 @@ import type { AppProps } from 'next/app';
 import { configureChains, createClient, WagmiConfig } from 'wagmi';
 import { arbitrum, goerli, mainnet, optimism, polygon } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
+import Link from 'next/link';
 
 const { chains, provider, webSocketProvider } = configureChains(
   [
@@ -56,10 +57,14 @@ function MyApp({ Component, pageProps }: AppProps) {
         overlayBlur: "small",
         borderRadius: "medium"
       })}>
-        <div className='min-h-screen bg-neutral-950 text-white'>
+        <div className='min-h-screen min-w-max bg-neutral-950 text-white'>
           <Component {...pageProps} />
 
-          <footer className="absolute bottom-0 px-2 bg-neutral-950 text-green-500 flex flex-row gap-3 text-sm font-mono">
+          <footer className="absolute bottom-0 px-2 bg-neutral-950 text-green-500 flex flex-row gap-3 text-sm font-mono w-full">
+            <Link href="/about">
+              About
+            </Link>
+
             <a href="https://github.com/yashkarthik/firechat" rel="noopener noreferrer" target="_blank">
               Github
             </a>
@@ -68,7 +73,7 @@ function MyApp({ Component, pageProps }: AppProps) {
               Blog
             </a>
 
-            <button type="button" onClick={() => navigator.clipboard.writeText("yashkarthik.eth")}>
+            <button type="button" className='absolute right-0 mr-2' onClick={() => navigator.clipboard.writeText("yashkarthik.eth")}>
               yashkarthik.eth
             </button>
           </footer>

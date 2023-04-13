@@ -72,7 +72,7 @@ const Chat: NextPage = () => {
 
   const { isLoading: isMessageSendLoading } = useWaitForTransaction({
     hash: messageSendData?.hash,
-    onSuccess(data) {
+    onSuccess() {
       updateChatUI(chatHash as string);
       setDisableInput(false);
     },

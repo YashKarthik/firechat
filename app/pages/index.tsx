@@ -30,11 +30,15 @@ const Home: NextPage = () => {
   });
 
   async function checkIfRealError() {
+    console.log(msgReceiverAddrRef.current);
     if (!address) return;
     if (!isPrepareChatConfigError) {
+      console.log("valid");
       setInputStatus("valid");
       return;
     }
+
+    console.log("still running");
 
     try {
       const room = await getChat(address, msgReceiverAddrRef.current, FIRECHAT_ADDRESS);
@@ -58,8 +62,6 @@ const Home: NextPage = () => {
       }
       console.log(e);
     }
-
-    setInputStatus("valid");
   }
 
   const {
@@ -108,15 +110,15 @@ const Home: NextPage = () => {
         </div>
 
           <h1 className=" text-3xl font-bold ">
-            Welcome to Firechat
+            Welcome to <span className='font-mono text-green-500'>Firechat</span>
           </h1>
 
-          <p className="mb-7">
-            Burn <code>ether Ξ </code>
-            by chatting on-chain🔥
+          <p className="mb-7 mt-1">
+            Burn <code className='text-green-500 font-mono ml-1'>ether Ξ </code>
+            by chatting on-chain. <br/> <i className='text-green-500 font-mono'>Emergency</i> chat app on Ethereum.
           </p>
 
-          <div>
+          <div className='mt-10'>
             <p>
               Whom do you wanna chat with?
             </p>
@@ -124,7 +126,7 @@ const Home: NextPage = () => {
               e.preventDefault();
               if (!address) return;
               const chatHash = await checkIfRealError();
-              console.log(inputStatus);
+              console.log("on submit", inputStatus);
               if (chatHash) {
                 router.push(`/chat/${chatHash}`);
                 return;
@@ -135,8 +137,8 @@ const Home: NextPage = () => {
               createNewChat?.();
               }}
               className="
-                flex flex-col md:flex-row gap-2
-                items-center
+                flex flex-col md:flex-row
+                gap-2 items-center mt-2
             ">
               <input
                 type="text"
@@ -150,7 +152,7 @@ const Home: NextPage = () => {
                   bg-black
                   border-2 border-gray-500
                   rounded-sm
-                  min-w-[42ch]
+                  min-w-[32ch] md:min-w-[42ch]
               "/>
 
               <button disabled={inputStatus == "invalid address" || inputStatus == "zero address"} title={isPrepareChatConfigError ? "Enter a valid address" : "Create chat"} className={`
