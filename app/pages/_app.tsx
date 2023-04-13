@@ -3,16 +3,13 @@ import '@rainbow-me/rainbowkit/styles.css';
 import { darkTheme, getDefaultWallets, RainbowKitProvider } from '@rainbow-me/rainbowkit';
 import type { AppProps } from 'next/app';
 import { configureChains, createClient, WagmiConfig } from 'wagmi';
-import { arbitrum, goerli, mainnet, optimism, polygon } from 'wagmi/chains';
+import { goerli } from 'wagmi/chains';
 import { publicProvider } from 'wagmi/providers/public';
 import Link from 'next/link';
 
 const { chains, provider, webSocketProvider } = configureChains(
   [
-    mainnet,
-    polygon,
-    optimism,
-    arbitrum,
+    goerli,
     {
       id: 31337,
       name: "Localhost",
@@ -21,17 +18,16 @@ const { chains, provider, webSocketProvider } = configureChains(
         decimals: 18,
         name: "Ether",
         symbol: "ETH",
-    },
-    rpcUrls: {
+      },
+      rpcUrls: {
         default: {
-            http: ["http://127.0.0.1:8545"],
+          http: ["http://127.0.0.1:8545"],
         },
         public: {
-            http: ["http://127.0.0.1:8545"],
+          http: ["http://127.0.0.1:8545"],
         },
+      },
     },
-},
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [goerli] : []),
   ],
   [publicProvider()]
 );
