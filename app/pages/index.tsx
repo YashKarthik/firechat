@@ -17,7 +17,7 @@ import { useRouter } from 'next/router';
 
 const Home: NextPage = () => {
 
-  const FIRECHAT_ADDRESS =  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  const FIRECHAT_ADDRESS =  "0x12c6A297cbCF174a026C924980E4fE7b421753Da";
 
   const [inputStatus, setInputStatus] = useState<"room exists" | "invalid address" | "zero address" | "valid">("zero address");
   const msgReceiverAddrRef = useRef(ethers.constants.AddressZero);

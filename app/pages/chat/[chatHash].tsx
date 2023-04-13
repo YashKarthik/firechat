@@ -1,6 +1,6 @@
 import { NextPage } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getChatHistory, Message } from "../../utils/contract-functions";
 import FIRECHAT_ABI from "@/abis/Firechat.json";
 import { useAccount, useContractRead, useContractWrite, usePrepareContractWrite, useWaitForTransaction } from "wagmi";
@@ -10,7 +10,7 @@ import Link from "next/link";
 
 const Chat: NextPage = () => {
 
-  const FIRECHAT_CONTRACT_ADDRESS =  "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+  const FIRECHAT_CONTRACT_ADDRESS =  "0x12c6A297cbCF174a026C924980E4fE7b421753Da";
   const router = useRouter();
   const { chatHash } = router.query;
   const [disableInput, setDisableInput] = useState(false);
@@ -66,7 +66,6 @@ const Chat: NextPage = () => {
 
   const {
     write: sendMessage,
-    error: sendMessageError,
     reset: resetMsgParams,
     data: messageSendData,
   } = useContractWrite(messageConfig);
